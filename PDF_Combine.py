@@ -1,34 +1,16 @@
-import streamlit as st
-from PyPDF2 import PdfMerger
-from openpyxl import load_workbook
-from fpdf import FPDF
-from PIL import Image, ImageDraw, ImageFont
-import io
-import os
 import tempfile
+import os
+import io
+from PIL import Image
+from PyPDF2 import PdfMerger
 
-# Page configuration
-st.set_page_config(
-    page_title="Nicola's PDF Puzzle",
-    page_icon="📄",
-    layout="centered",
-    initial_sidebar_state="auto"
-)
-
-# Main title and subheader
-st.title("📄 Nicola's PDF Puzzle")
-st.subheader("From chaos to order—one PDF at a time! 🚀")
-
-# Helper functions
 def convert_docx_to_image(docx_file):
     try:
-        # Read the DOCX file
         from docx import Document
         document = Document(docx_file)
 
-        # Create an image
-        width, height = 800, 1000  # Adjust dimensions as needed
         images = []
+        width, height = 800, 1000  # Adjust dimensions as needed
         
         for para in document.paragraphs:
             image = Image.new('RGB', (width, height), 'white')
@@ -53,10 +35,11 @@ def convert_docx_to_image(docx_file):
 
 def convert_images_to_pdf(image_list):
     try:
-        # Convert images to PDF
         pdf_output = io.BytesIO()
-        first_image = Image.open(image_list[0])
-        first_image.save(pdf_output, save_all=True, append_images=[Image.open(img) for img in image_list[1:]], resolution=100.0, quality=95)
+        images = [Image.open(img) for img in image_list]
+        
+        # Save the first image and append the rest
+        images[0].save(pdf_output, save_all=True, append_images=images[1:], resolution=100.0, quality=95, optimize=True)
         pdf_output.seek(0)
         return pdf_output
     
@@ -86,29 +69,35 @@ def convert_image_to_pdf(image_file):
     pdf_output.seek(0)
     return pdf_output if pdf_output.getbuffer().nbytes > 0 else None
 
-# Instructions
+# Main Streamlit app code
+st.set_page_config(
+    page_title="Nicola's PDF Puzzle",
+    page_icon="📄",
+    layout="centered",
+    initial_sidebar_state="auto"
+)
+
+st.title("📄 Nicola's PDF Puzzle")
+st.subheader("From chaos to order—one PDF at a time! 🚀")
+
 st.write("""
 **Upload up to 15 Word, Excel, Image, or PDF documents below.**
 We'll help you combine them into one single, neat PDF file that you can download.
 """)
 
-# File upload
 uploaded_files = st.file_uploader("Choose files", type=["pdf", "docx", "xlsx", "png", "jpg", "jpeg"], accept_multiple_files=True)
 
-# Display a limit on the number of files
 if uploaded_files and len(uploaded_files) > 15:
     st.error("🚨 You can upload a maximum of 15 files. Please try again.")
 elif uploaded_files:
     st.write("All files uploaded successfully! Press the **Create PDF** button below to merge them.")
     
-    # Button to start the merging process
     if st.button("🎉 Create PDF!"):
         merger = PdfMerger()
         for file in uploaded_files:
             file_type = file.name.split('.')[-1].lower()
             pdf_file = None
             
-            # Convert and merge based on file type
             if file_type == 'pdf':
                 pdf_file = file
             elif file_type == 'docx':
@@ -122,11 +111,10 @@ elif uploaded_files:
             
             if pdf_file:
                 try:
-                    merger.append(pdf_file)  # Append only if pdf_file is not None
+                    merger.append(pdf_file)
                 except Exception as e:
                     st.error(f"Error merging {file.name}: {str(e)}")
 
-        # Output merged PDF
         merged_pdf = io.BytesIO()
         merger.write(merged_pdf)
         merged_pdf.seek(0)
