@@ -1,11 +1,14 @@
 import io
-import os
+import re
+import shutil
 import tempfile
+import uuid
+from pathlib import Path
+from subprocess import PIPE, run
 from PyPDF2 import PdfMerger
 from openpyxl import load_workbook
 from fpdf import FPDF
 from PIL import Image
-import pdfkit
 import streamlit as st
 from docx import Document
 
@@ -21,30 +24,21 @@ st.set_page_config(
 st.title("📄 Nicola's PDF Puzzle")
 st.subheader("From chaos to order—one PDF at a time! 🚀")
 
-# Helper functions
-def convert_docx_to_html(docx_file):
-    """Convert DOCX file to HTML."""
+def convert_doc_to_pdf_native(doc_file: Path, output_dir: Path = Path("."), timeout: int = 60):
+    """Converts a doc file to pdf using LibreOffice."""
+    exception = None
+    output = None
     try:
-        doc = Document(io.BytesIO(docx_file.read()))
-        html_content = "<html><body>"
-        for paragraph in doc.paragraphs:
-            html_content += f"<p>{paragraph.text}</p>"
-        html_content += "</body></html>"
-        return html_content
+        process = run(['soffice', '--headless', '--convert-to',
+                        'pdf:writer_pdf_Export', '--outdir', output_dir.resolve(), doc_file.resolve()],
+                       stdout=PIPE, stderr=PIPE,
+                       timeout=timeout, check=True)
+        stdout = process.stdout.decode("utf-8")
+        re_filename = re.search(r'-> (.*?) using filter', stdout)
+        output = Path(re_filename[1]).resolve()
     except Exception as e:
-        st.error(f"⚠️ An error occurred while converting DOCX to HTML: {str(e)}")
-        return None
-
-def convert_html_to_pdf(html_content):
-    """Convert HTML content to PDF using pdfkit."""
-    try:
-        pdf_output = io.BytesIO()
-        pdfkit.from_string(html_content, pdf_output)
-        pdf_output.seek(0)
-        return pdf_output
-    except Exception as e:
-        st.error(f"⚠️ An error occurred while converting HTML to PDF: {str(e)}")
-        return None
+        exception = e
+    return output, exception
 
 def convert_excel_to_pdf(excel_file):
     """Convert Excel file to PDF."""
@@ -97,6 +91,9 @@ if uploaded_files and len(uploaded_files) > 15:
 elif uploaded_files:
     st.write("All files uploaded successfully! Press the **Create PDF** button below to merge them.")
     
+    # Create a temporary directory for file conversion
+    temp_dir = Path(tempfile.mkdtemp())
+    
     # Button to start the merging process
     if st.button("🎉 Create PDF!"):
         merger = PdfMerger()
@@ -108,9 +105,14 @@ elif uploaded_files:
             if file_type == 'pdf':
                 pdf_file = file
             elif file_type == 'docx':
-                html_content = convert_docx_to_html(file)
-                if html_content:
-                    pdf_file = convert_html_to_pdf(html_content)
+                doc_file_path = Path(tempfile.mktemp())  # Temporary file for DOCX
+                with open(doc_file_path, 'wb') as f:
+                    f.write(file.getbuffer())
+                pdf_file_path, exception = convert_doc_to_pdf_native(doc_file_path, temp_dir)
+                if exception:
+                    st.error(f"⚠️ An error occurred while converting {file.name} to PDF: {str(exception)}")
+                if pdf_file_path:
+                    pdf_file = pdf_file_path
             elif file_type == 'xlsx':
                 pdf_file = convert_excel_to_pdf(file)
             elif file_type in ['png', 'jpg', 'jpeg']:
@@ -118,10 +120,15 @@ elif uploaded_files:
             
             if pdf_file:
                 try:
+                    if isinstance(pdf_file, Path):  # If it's a file path, open it
+                        pdf_file = open(pdf_file, 'rb')
                     merger.append(pdf_file)
                 except Exception as e:
                     st.error(f"Error merging {file.name}: {str(e)}")
 
+        # Cleanup temp directory
+        shutil.rmtree(temp_dir)
+        
         # Output merged PDF
         merged_pdf = io.BytesIO()
         merger.write(merged_pdf)
