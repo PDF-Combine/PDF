@@ -1,3 +1,4 @@
+
 import streamlit as st
 from PyPDF2 import PdfMerger
 from docx import Document
@@ -18,8 +19,7 @@ def convert_docx_to_pdf(docx_file):
     pdf_output = io.BytesIO()  # Create a BytesIO stream
     pdf.output(pdf_output, 'S')  # Pass 'S' to output the PDF as a string, not a file
     pdf_output.seek(0)  # Move to the start of the BytesIO stream
-    return pdf_output
-
+    return pdf_output if pdf_output.getbuffer().nbytes > 0 else None  # Ensure it's not empty
 
 def convert_excel_to_pdf(excel_file):
     wb = load_workbook(excel_file)
@@ -30,17 +30,18 @@ def convert_excel_to_pdf(excel_file):
         row_text = ' '.join([str(cell) for cell in row if cell is not None])
         pdf.set_font("Arial", size=12)
         pdf.multi_cell(0, 10, row_text)
+    
     pdf_output = io.BytesIO()
-    pdf.output(pdf_output)
+    pdf.output(pdf_output, 'S')
     pdf_output.seek(0)
-    return pdf_output
+    return pdf_output if pdf_output.getbuffer().nbytes > 0 else None  # Ensure it's not empty
 
 def convert_image_to_pdf(image_file):
     img = Image.open(image_file)
     pdf_output = io.BytesIO()
     img.convert('RGB').save(pdf_output, format='PDF')
     pdf_output.seek(0)
-    return pdf_output
+    return pdf_output if pdf_output.getbuffer().nbytes > 0 else None  # Ensure it's not empty
 
 # Page configuration
 st.set_page_config(
@@ -50,43 +51,10 @@ st.set_page_config(
     initial_sidebar_state="auto"
 )
 
-# Custom CSS for a professional look
-st.markdown("""
-    <style>
-        body {
-            background-color: #f0f2f6;
-        }
-        .main {
-            background-color: white;
-            border-radius: 10px;
-            padding: 2rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #ff4b4b;
-            font-size: 3rem;
-        }
-        .stButton button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 0.5rem 2rem;
-            border-radius: 5px;
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-        .stButton button:hover {
-            background-color: #0056b3;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
 # Main title and subheader
 st.title("📄 Nicola's PDF Puzzle")
 st.subheader("From chaos to order—one PDF at a time! 🚀")
 
-# Catchy phrase
-#st.write("Where files come together in perfect harmony! 🎶")
 
 # Instructions
 st.write("""
@@ -121,8 +89,11 @@ elif uploaded_files:
                 pdf_file = convert_image_to_pdf(file)
             
             if pdf_file:
-                merger.append(pdf_file)
-        
+                try:
+                    merger.append(pdf_file)  # Append only if pdf_file is not None
+                except Exception as e:
+                    st.error(f"Error merging {file.name}: {str(e)}")
+
         # Output merged PDF
         merged_pdf = io.BytesIO()
         merger.write(merged_pdf)
