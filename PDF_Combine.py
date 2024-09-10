@@ -1,25 +1,33 @@
-
 import streamlit as st
 from PyPDF2 import PdfMerger
-from docx import Document
+from docx2pdf import convert as docx2pdf_convert
 from openpyxl import load_workbook
 from fpdf import FPDF
 from PIL import Image
 import io
+import os
+import tempfile
 
-# Helper functions (same as before)
+# Helper functions (updated for Word docs)
 def convert_docx_to_pdf(docx_file):
-    doc = Document(docx_file)
-    pdf = FPDF()
-    pdf.add_page()
-    for para in doc.paragraphs:
-        pdf.set_font("Arial", size=12)
-        pdf.multi_cell(0, 10, para.text)
-    
-    pdf_output = io.BytesIO()  # Create a BytesIO stream
-    pdf.output(pdf_output, 'S')  # Pass 'S' to output the PDF as a string, not a file
-    pdf_output.seek(0)  # Move to the start of the BytesIO stream
-    return pdf_output if pdf_output.getbuffer().nbytes > 0 else None  # Ensure it's not empty
+    # Create a temporary directory to save the docx and pdf files
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        temp_docx_path = os.path.join(tmpdirname, docx_file.name)
+        
+        # Save uploaded docx file temporarily
+        with open(temp_docx_path, "wb") as f:
+            f.write(docx_file.getbuffer())
+        
+        # Convert DOCX to PDF using docx2pdf
+        temp_pdf_path = os.path.join(tmpdirname, "output.pdf")
+        docx2pdf_convert(temp_docx_path, temp_pdf_path)
+        
+        # Read the PDF file back into a BytesIO stream
+        with open(temp_pdf_path, "rb") as pdf_file:
+            pdf_output = io.BytesIO(pdf_file.read())
+        
+        pdf_output.seek(0)
+        return pdf_output
 
 def convert_excel_to_pdf(excel_file):
     wb = load_workbook(excel_file)
@@ -34,18 +42,18 @@ def convert_excel_to_pdf(excel_file):
     pdf_output = io.BytesIO()
     pdf.output(pdf_output, 'S')
     pdf_output.seek(0)
-    return pdf_output if pdf_output.getbuffer().nbytes > 0 else None  # Ensure it's not empty
+    return pdf_output if pdf_output.getbuffer().nbytes > 0 else None
 
 def convert_image_to_pdf(image_file):
     img = Image.open(image_file)
     pdf_output = io.BytesIO()
     img.convert('RGB').save(pdf_output, format='PDF')
     pdf_output.seek(0)
-    return pdf_output if pdf_output.getbuffer().nbytes > 0 else None  # Ensure it's not empty
+    return pdf_output if pdf_output.getbuffer().nbytes > 0 else None
 
 # Page configuration
 st.set_page_config(
-    page_title="The Ultimate PDF Mixer",
+    page_title="Nicola's PDF Puzzle",
     page_icon="📄",
     layout="centered",
     initial_sidebar_state="auto"
