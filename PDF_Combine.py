@@ -91,7 +91,7 @@ We'll help you combine them into one single, neat PDF file that you can download
 """)
 
 # File upload
-uploaded_files = st.file_uploader("Choose files", type=["pdf", "docx", "xlsx", "png", "jpg", "jpeg"], accept_multiple_files=True)
+uploaded_files = st.file_uploader("Choose files", type=["pdf", "png", "jpg", "jpeg"], accept_multiple_files=True)
 
 if uploaded_files:
     # Display a limit on the number of files
