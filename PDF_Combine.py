@@ -1,9 +1,25 @@
-import tempfile
-import os
-import io
-from PIL import Image
+import streamlit as st
 from PyPDF2 import PdfMerger
+from openpyxl import load_workbook
+from fpdf import FPDF
+from PIL import Image, ImageDraw, ImageFont
+import io
+import os
+import tempfile
 
+# Page configuration - should be at the top
+st.set_page_config(
+    page_title="Nicola's PDF Puzzle",
+    page_icon="📄",
+    layout="centered",
+    initial_sidebar_state="auto"
+)
+
+# Main title and subheader
+st.title("📄 Nicola's PDF Puzzle")
+st.subheader("From chaos to order—one PDF at a time! 🚀")
+
+# Helper functions
 def convert_docx_to_image(docx_file):
     try:
         from docx import Document
@@ -69,29 +85,22 @@ def convert_image_to_pdf(image_file):
     pdf_output.seek(0)
     return pdf_output if pdf_output.getbuffer().nbytes > 0 else None
 
-# Main Streamlit app code
-st.set_page_config(
-    page_title="Nicola's PDF Puzzle",
-    page_icon="📄",
-    layout="centered",
-    initial_sidebar_state="auto"
-)
-
-st.title("📄 Nicola's PDF Puzzle")
-st.subheader("From chaos to order—one PDF at a time! 🚀")
-
+# Instructions
 st.write("""
 **Upload up to 15 Word, Excel, Image, or PDF documents below.**
 We'll help you combine them into one single, neat PDF file that you can download.
 """)
 
+# File upload
 uploaded_files = st.file_uploader("Choose files", type=["pdf", "docx", "xlsx", "png", "jpg", "jpeg"], accept_multiple_files=True)
 
+# Display a limit on the number of files
 if uploaded_files and len(uploaded_files) > 15:
     st.error("🚨 You can upload a maximum of 15 files. Please try again.")
 elif uploaded_files:
     st.write("All files uploaded successfully! Press the **Create PDF** button below to merge them.")
     
+    # Button to start the merging process
     if st.button("🎉 Create PDF!"):
         merger = PdfMerger()
         for file in uploaded_files:
