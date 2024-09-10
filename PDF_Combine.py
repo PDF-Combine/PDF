@@ -2,15 +2,10 @@ import streamlit as st
 from PyPDF2 import PdfMerger
 from openpyxl import load_workbook
 from fpdf import FPDF
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import io
 import os
 import tempfile
-import pypandoc
-from docx2pdf import convert as docx2pdf_convert
-from docx import Document
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 
 # Page configuration
 st.set_page_config(
@@ -24,55 +19,50 @@ st.set_page_config(
 st.title("📄 Nicola's PDF Puzzle")
 st.subheader("From chaos to order—one PDF at a time! 🚀")
 
-
-
-
-
-def convert_docx_to_pdf(docx_file):
+# Helper functions
+def convert_docx_to_image(docx_file):
     try:
-        # Create a temporary directory to save the docx and pdf files
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            temp_docx_path = os.path.join(tmpdirname, docx_file.name)
-            
-            # Save uploaded docx file temporarily
-            with open(temp_docx_path, "wb") as f:
-                f.write(docx_file.getbuffer())
-            
-            # Read the DOCX file
-            document = Document(temp_docx_path)
-            
-            # Define output PDF path
-            temp_pdf_path = os.path.join(tmpdirname, "output.pdf")
-            
-            # Create a PDF file
-            c = canvas.Canvas(temp_pdf_path, pagesize=letter)
-            width, height = letter
-            
-            # Add text to the PDF
-            for para in document.paragraphs:
-                c.drawString(72, height - 72)  # 1 inch from the top
-                c.drawString(72, height - 100)  # 1.5 inches from the top
-                c.drawString(72, height - 128)  # 2 inches from the top
-                c.setFont("Helvetica", 12)
-                c.drawString(72, height - 72, para.text)
-                height -= 40  # Move down for the next line
-                if height < 72:
-                    c.showPage()
-                    height = letter[1]
-            
-            c.save()
-            
-            # Read the PDF file back into a BytesIO stream
-            with open(temp_pdf_path, "rb") as pdf_file:
-                pdf_output = io.BytesIO(pdf_file.read())
-            
-            pdf_output.seek(0)
-            return pdf_output
+        # Read the DOCX file
+        from docx import Document
+        document = Document(docx_file)
 
+        # Create an image
+        width, height = 800, 1000  # Adjust dimensions as needed
+        images = []
+        
+        for para in document.paragraphs:
+            image = Image.new('RGB', (width, height), 'white')
+            draw = ImageDraw.Draw(image)
+            font = ImageFont.load_default()
+            
+            y = 10
+            draw.text((10, y), para.text, font=font, fill='black')
+            y += 20
+            
+            # Save image to a BytesIO object
+            img_io = io.BytesIO()
+            image.save(img_io, format='JPEG')
+            img_io.seek(0)
+            images.append(img_io)
+        
+        return images
+    
     except Exception as e:
-        st.error(f"⚠️ An error occurred while converting DOCX to PDF: {str(e)}")
+        st.error(f"⚠️ An error occurred while converting DOCX to image: {str(e)}")
         return None
 
+def convert_images_to_pdf(image_list):
+    try:
+        # Convert images to PDF
+        pdf_output = io.BytesIO()
+        first_image = Image.open(image_list[0])
+        first_image.save(pdf_output, save_all=True, append_images=[Image.open(img) for img in image_list[1:]], resolution=100.0, quality=95)
+        pdf_output.seek(0)
+        return pdf_output
+    
+    except Exception as e:
+        st.error(f"⚠️ An error occurred while converting images to PDF: {str(e)}")
+        return None
 
 def convert_excel_to_pdf(excel_file):
     wb = load_workbook(excel_file)
@@ -122,7 +112,9 @@ elif uploaded_files:
             if file_type == 'pdf':
                 pdf_file = file
             elif file_type == 'docx':
-                pdf_file = convert_docx_to_pdf(file)
+                images = convert_docx_to_image(file)
+                if images:
+                    pdf_file = convert_images_to_pdf(images)
             elif file_type == 'xlsx':
                 pdf_file = convert_excel_to_pdf(file)
             elif file_type in ['png', 'jpg', 'jpeg']:
