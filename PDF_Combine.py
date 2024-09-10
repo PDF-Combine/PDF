@@ -7,6 +7,7 @@ import io
 import os
 import tempfile
 import pypandoc
+from docx2pdf import convert as docx2pdf_convert
 
 # Page configuration
 st.set_page_config(
@@ -20,7 +21,8 @@ st.set_page_config(
 st.title("📄 Nicola's PDF Puzzle")
 st.subheader("From chaos to order—one PDF at a time! 🚀")
 
-# Helper functions
+
+
 def convert_docx_to_pdf(docx_file):
     try:
         # Create a temporary directory to save the docx and pdf files
@@ -34,8 +36,8 @@ def convert_docx_to_pdf(docx_file):
             # Define output PDF path
             temp_pdf_path = os.path.join(tmpdirname, "output.pdf")
             
-            # Convert DOCX to PDF using pypandoc
-            pypandoc.convert_file(temp_docx_path, 'pdf', outputfile=temp_pdf_path)
+            # Convert DOCX to PDF using docx2pdf
+            docx2pdf_convert(temp_docx_path, temp_pdf_path)
             
             # Read the PDF file back into a BytesIO stream
             with open(temp_pdf_path, "rb") as pdf_file:
@@ -47,6 +49,7 @@ def convert_docx_to_pdf(docx_file):
     except Exception as e:
         st.error(f"⚠️ An error occurred while converting DOCX to PDF: {str(e)}")
         return None
+
 
 def convert_excel_to_pdf(excel_file):
     wb = load_workbook(excel_file)
