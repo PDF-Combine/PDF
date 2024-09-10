@@ -84,7 +84,7 @@ st.title("📄 Nicola's PDF Puzzle")
 st.subheader("From chaos to order—one PDF at a time! 🚀")
 
 # Catchy phrase
-st.write("Where files come together in perfect harmony! 🎶")
+#st.write("Where files come together in perfect harmony! 🎶")
 
 # Instructions
 st.write("""
