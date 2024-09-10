@@ -1,6 +1,5 @@
 import streamlit as st
 from PyPDF2 import PdfMerger
-from docx2pdf import convert as docx2pdf_convert
 from openpyxl import load_workbook
 from fpdf import FPDF
 from PIL import Image
@@ -8,26 +7,33 @@ import io
 import os
 import tempfile
 
-# Helper functions (updated for Word docs)
+# Helper functions
 def convert_docx_to_pdf(docx_file):
-    # Create a temporary directory to save the docx and pdf files
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        temp_docx_path = os.path.join(tmpdirname, docx_file.name)
-        
-        # Save uploaded docx file temporarily
-        with open(temp_docx_path, "wb") as f:
-            f.write(docx_file.getbuffer())
-        
-        # Convert DOCX to PDF using docx2pdf
-        temp_pdf_path = os.path.join(tmpdirname, "output.pdf")
-        docx2pdf_convert(temp_docx_path, temp_pdf_path)
-        
-        # Read the PDF file back into a BytesIO stream
-        with open(temp_pdf_path, "rb") as pdf_file:
-            pdf_output = io.BytesIO(pdf_file.read())
-        
-        pdf_output.seek(0)
-        return pdf_output
+    try:
+        from docx2pdf import convert as docx2pdf_convert
+
+        # Create a temporary directory to save the docx and pdf files
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            temp_docx_path = os.path.join(tmpdirname, docx_file.name)
+            
+            # Save uploaded docx file temporarily
+            with open(temp_docx_path, "wb") as f:
+                f.write(docx_file.getbuffer())
+            
+            # Convert DOCX to PDF using docx2pdf
+            temp_pdf_path = os.path.join(tmpdirname, "output.pdf")
+            docx2pdf_convert(temp_docx_path, temp_pdf_path)
+            
+            # Read the PDF file back into a BytesIO stream
+            with open(temp_pdf_path, "rb") as pdf_file:
+                pdf_output = io.BytesIO(pdf_file.read())
+            
+            pdf_output.seek(0)
+            return pdf_output
+
+    except NotImplementedError:
+        st.error("⚠️ DOCX to PDF conversion is not available on this system. Please upload the document as a PDF or try again on a Windows machine.")
+        return None
 
 def convert_excel_to_pdf(excel_file):
     wb = load_workbook(excel_file)
@@ -53,16 +59,18 @@ def convert_image_to_pdf(image_file):
 
 # Page configuration
 st.set_page_config(
-    page_title="Nicola's PDF Puzzle",
+    page_title="The Ultimate PDF Mixer",
     page_icon="📄",
     layout="centered",
     initial_sidebar_state="auto"
 )
 
 # Main title and subheader
-st.title("📄 Nicola's PDF Puzzle")
-st.subheader("From chaos to order—one PDF at a time! 🚀")
+st.title("📄 The Ultimate PDF Mixer")
+st.subheader("Nicola's PDF Party: Merge Your Files with Flair!")
 
+# Catchy phrase
+st.write("Where files come together in perfect harmony! 🎶")
 
 # Instructions
 st.write("""
