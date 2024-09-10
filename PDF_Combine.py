@@ -8,11 +8,17 @@ import os
 import tempfile
 import pypandoc
 
-# Attempt to download Pandoc if not found
-try:
-    pypandoc.download_pandoc()
-except Exception as e:
-    st.error(f"⚠️ An error occurred while downloading Pandoc: {str(e)}")
+# Page configuration
+st.set_page_config(
+    page_title="Nicola's PDF Puzzle",
+    page_icon="📄",
+    layout="centered",
+    initial_sidebar_state="auto"
+)
+
+# Main title and subheader
+st.title("📄 Nicola's PDF Puzzle")
+st.subheader("From chaos to order—one PDF at a time! 🚀")
 
 # Helper functions
 def convert_docx_to_pdf(docx_file):
@@ -63,18 +69,6 @@ def convert_image_to_pdf(image_file):
     img.convert('RGB').save(pdf_output, format='PDF')
     pdf_output.seek(0)
     return pdf_output if pdf_output.getbuffer().nbytes > 0 else None
-
-# Page configuration
-st.set_page_config(
-    page_title="Nicola's PDF Puzzle",
-    page_icon="📄",
-    layout="centered",
-    initial_sidebar_state="auto"
-)
-
-# Main title and subheader
-st.title("📄 Nicola's PDF Puzzle")
-st.subheader("From chaos to order—one PDF at a time! 🚀")
 
 # Instructions
 st.write("""
