@@ -2,5 +2,5 @@ openpyxl
 Pillow
 PyPDF2
 fpdf
+pdfkit
 python-docx
-pywin32
