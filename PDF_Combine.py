@@ -6,7 +6,7 @@ from PIL import Image
 import io
 import os
 import tempfile
-from docx2pdf import convert  # Import docx2pdf
+import win32com.client
 
 # Page configuration
 st.set_page_config(
@@ -34,8 +34,12 @@ def convert_docx_to_pdf(docx_file):
             # Define output PDF path
             temp_pdf_path = os.path.join(tmpdirname, "output.pdf")
             
-            # Convert DOCX to PDF using docx2pdf
-            convert(temp_docx_path, temp_pdf_path)
+            # Convert DOCX to PDF using win32com
+            word = win32com.client.Dispatch('Word.Application')
+            doc = word.Documents.Open(temp_docx_path)
+            doc.SaveAs(temp_pdf_path, FileFormat=17)  # FileFormat=17 for PDF
+            doc.Close()
+            word.Quit()
             
             # Read the PDF file back into a BytesIO stream
             with open(temp_pdf_path, "rb") as pdf_file:
@@ -96,7 +100,7 @@ elif uploaded_files:
             if file_type == 'pdf':
                 pdf_file = file
             elif file_type == 'docx':
-                # Convert DOCX to PDF using docx2pdf
+                # Convert DOCX to PDF using win32com
                 pdf_file = convert_docx_to_pdf(file)
             elif file_type == 'xlsx':
                 pdf_file = convert_excel_to_pdf(file)
