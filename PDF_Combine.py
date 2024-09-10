@@ -6,7 +6,8 @@ from PIL import Image
 import io
 import os
 import tempfile
-import win32com.client
+import pdfkit
+from docx import Document
 
 # Page configuration
 st.set_page_config(
@@ -21,35 +22,29 @@ st.title("📄 Nicola's PDF Puzzle")
 st.subheader("From chaos to order—one PDF at a time! 🚀")
 
 # Helper functions
-def convert_docx_to_pdf(docx_file):
+def convert_docx_to_html(docx_file):
     try:
-        # Create a temporary directory to save the docx and pdf files
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            temp_docx_path = os.path.join(tmpdirname, docx_file.name)
-            
-            # Save uploaded docx file temporarily
-            with open(temp_docx_path, "wb") as f:
-                f.write(docx_file.getbuffer())
-            
-            # Define output PDF path
-            temp_pdf_path = os.path.join(tmpdirname, "output.pdf")
-            
-            # Convert DOCX to PDF using win32com
-            word = win32com.client.Dispatch('Word.Application')
-            doc = word.Documents.Open(temp_docx_path)
-            doc.SaveAs(temp_pdf_path, FileFormat=17)  # FileFormat=17 for PDF
-            doc.Close()
-            word.Quit()
-            
-            # Read the PDF file back into a BytesIO stream
-            with open(temp_pdf_path, "rb") as pdf_file:
-                pdf_output = io.BytesIO(pdf_file.read())
-            
-            pdf_output.seek(0)
-            return pdf_output
+        doc = Document(io.BytesIO(docx_file.read()))
+        html_content = "<html><body>"
+        
+        for paragraph in doc.paragraphs:
+            html_content += f"<p>{paragraph.text}</p>"
+        
+        html_content += "</body></html>"
+        return html_content
 
     except Exception as e:
-        st.error(f"⚠️ An error occurred while converting DOCX to PDF: {str(e)}")
+        st.error(f"⚠️ An error occurred while converting DOCX to HTML: {str(e)}")
+        return None
+
+def convert_html_to_pdf(html_content):
+    try:
+        pdf_output = io.BytesIO()
+        pdfkit.from_string(html_content, pdf_output)
+        pdf_output.seek(0)
+        return pdf_output
+    except Exception as e:
+        st.error(f"⚠️ An error occurred while converting HTML to PDF: {str(e)}")
         return None
 
 def convert_excel_to_pdf(excel_file):
@@ -100,8 +95,9 @@ elif uploaded_files:
             if file_type == 'pdf':
                 pdf_file = file
             elif file_type == 'docx':
-                # Convert DOCX to PDF using win32com
-                pdf_file = convert_docx_to_pdf(file)
+                html_content = convert_docx_to_html(file)
+                if html_content:
+                    pdf_file = convert_html_to_pdf(html_content)
             elif file_type == 'xlsx':
                 pdf_file = convert_excel_to_pdf(file)
             elif file_type in ['png', 'jpg', 'jpeg']:
