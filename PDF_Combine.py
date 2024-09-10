@@ -4,7 +4,6 @@ from openpyxl import load_workbook
 from fpdf import FPDF
 from PIL import Image, ImageDraw, ImageFont
 import io
-import tempfile
 from datetime import datetime
 
 # Page configuration - should be at the top
@@ -94,54 +93,68 @@ We'll help you combine them into one single, neat PDF file that you can download
 # File upload
 uploaded_files = st.file_uploader("Choose files", type=["pdf", "docx", "xlsx", "png", "jpg", "jpeg"], accept_multiple_files=True)
 
-# Display a limit on the number of files
-if uploaded_files and len(uploaded_files) > 15:
-    st.error("🚨 You can upload a maximum of 15 files. Please try again.")
-elif uploaded_files:
-    st.write("All files uploaded successfully! Press the **Create PDF** button below to merge them.")
-    
-    # Display files with numbering
-    st.write("### Files Uploaded:")
-    for idx, file in enumerate(uploaded_files, start=1):
-        st.write(f"**Attachment {idx}:** {file.name}")
+if uploaded_files:
+    # Display a limit on the number of files
+    if len(uploaded_files) > 15:
+        st.error("🚨 You can upload a maximum of 15 files. Please try again.")
+    else:
+        st.write("All files uploaded successfully! Press the **Create PDF** button below to merge them.")
 
-    # Button to start the merging process
-    if st.button("🎉 Create PDF!"):
-        merger = PdfMerger()
-        for file in uploaded_files:
-            file_type = file.name.split('.')[-1].lower()
-            pdf_file = None
-            
-            if file_type == 'pdf':
-                pdf_file = file
-            elif file_type == 'docx':
-                images = convert_docx_to_image(file)
-                if images:
-                    pdf_file = convert_images_to_pdf(images)
-            elif file_type == 'xlsx':
-                pdf_file = convert_excel_to_pdf(file)
-            elif file_type in ['png', 'jpg', 'jpeg']:
-                pdf_file = convert_image_to_pdf(file)
-            
-            if pdf_file:
-                try:
-                    merger.append(pdf_file)
-                except Exception as e:
-                    st.error(f"Error merging {file.name}: {str(e)}")
+        # Display files with dropdowns for reordering
+        file_names = [file.name for file in uploaded_files]
+        reordered_files = []
 
-        merged_pdf = io.BytesIO()
-        merger.write(merged_pdf)
-        merged_pdf.seek(0)
-        merger.close()
+        st.write("### Files Uploaded:")
+        for idx, file_name in enumerate(file_names):
+            selected_position = st.selectbox(
+                label=f"Position for Attachment {idx + 1}: {file_name}",
+                options=list(range(1, len(file_names) + 1)),
+                index=idx,
+                key=f"select_{idx}"
+            )
+            reordered_files.append((selected_position, uploaded_files[idx]))
 
-        # Generate timestamp for file name
-        timestamp = datetime.now().strftime("%Y%m%d%H%M")
-        file_name = f"merged_document_{timestamp}.pdf"
+        # Sort files based on selected positions
+        reordered_files.sort(key=lambda x: x[0])
+        sorted_files = [file[1] for file in reordered_files]
 
-        st.success("🎉 PDF created successfully! Download your merged PDF below.")
-        st.download_button(
-            label="📥 Download Merged PDF",
-            data=merged_pdf,
-            file_name=file_name,
-            mime="application/pdf"
-        )
+        # Button to start the merging process
+        if st.button("🎉 Create PDF!"):
+            merger = PdfMerger()
+            for file in sorted_files:
+                file_type = file.name.split('.')[-1].lower()
+                pdf_file = None
+                
+                if file_type == 'pdf':
+                    pdf_file = file
+                elif file_type == 'docx':
+                    images = convert_docx_to_image(file)
+                    if images:
+                        pdf_file = convert_images_to_pdf(images)
+                elif file_type == 'xlsx':
+                    pdf_file = convert_excel_to_pdf(file)
+                elif file_type in ['png', 'jpg', 'jpeg']:
+                    pdf_file = convert_image_to_pdf(file)
+                
+                if pdf_file:
+                    try:
+                        merger.append(pdf_file)
+                    except Exception as e:
+                        st.error(f"Error merging {file.name}: {str(e)}")
+
+            merged_pdf = io.BytesIO()
+            merger.write(merged_pdf)
+            merged_pdf.seek(0)
+            merger.close()
+
+            # Generate timestamp for file name
+            timestamp = datetime.now().strftime("%Y%m%d%H%M")
+            file_name = f"merged_document_{timestamp}.pdf"
+
+            st.success("🎉 PDF created successfully! Download your merged PDF below.")
+            st.download_button(
+                label="📥 Download Merged PDF",
+                data=merged_pdf,
+                file_name=file_name,
+                mime="application/pdf"
+            )
