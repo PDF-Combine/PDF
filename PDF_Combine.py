@@ -6,7 +6,7 @@ from PIL import Image
 import io
 import os
 import tempfile
-from docx_converter import convert_docx_to_pdf  # Import from streamlit-docx-converter
+from docx2pdf import convert  # Import docx2pdf
 
 # Page configuration
 st.set_page_config(
@@ -21,6 +21,33 @@ st.title("📄 Nicola's PDF Puzzle")
 st.subheader("From chaos to order—one PDF at a time! 🚀")
 
 # Helper functions
+def convert_docx_to_pdf(docx_file):
+    try:
+        # Create a temporary directory to save the docx and pdf files
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            temp_docx_path = os.path.join(tmpdirname, docx_file.name)
+            
+            # Save uploaded docx file temporarily
+            with open(temp_docx_path, "wb") as f:
+                f.write(docx_file.getbuffer())
+            
+            # Define output PDF path
+            temp_pdf_path = os.path.join(tmpdirname, "output.pdf")
+            
+            # Convert DOCX to PDF using docx2pdf
+            convert(temp_docx_path, temp_pdf_path)
+            
+            # Read the PDF file back into a BytesIO stream
+            with open(temp_pdf_path, "rb") as pdf_file:
+                pdf_output = io.BytesIO(pdf_file.read())
+            
+            pdf_output.seek(0)
+            return pdf_output
+
+    except Exception as e:
+        st.error(f"⚠️ An error occurred while converting DOCX to PDF: {str(e)}")
+        return None
+
 def convert_excel_to_pdf(excel_file):
     wb = load_workbook(excel_file)
     sheet = wb.active
@@ -69,7 +96,7 @@ elif uploaded_files:
             if file_type == 'pdf':
                 pdf_file = file
             elif file_type == 'docx':
-                # Convert DOCX to PDF using streamlit-docx-converter
+                # Convert DOCX to PDF using docx2pdf
                 pdf_file = convert_docx_to_pdf(file)
             elif file_type == 'xlsx':
                 pdf_file = convert_excel_to_pdf(file)
