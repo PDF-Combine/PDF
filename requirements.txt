@@ -5,3 +5,4 @@ fpdf
 pdfkit
 python-docx
 pypandoc
+docx2pdf
