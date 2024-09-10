@@ -87,7 +87,7 @@ def convert_image_to_pdf(image_file):
 
 # Instructions
 st.write("""
-**Upload up to 15 Word, Excel, Image, or PDF documents below.**
+**Upload up to 15  Images or PDF documents below.**
 We'll help you combine them into one single, neat PDF file that you can download.
 """)
 
