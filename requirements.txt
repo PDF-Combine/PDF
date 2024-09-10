@@ -3,4 +3,4 @@ Pillow
 PyPDF2
 fpdf
 python-docx
-win32com.client
+pywin32
