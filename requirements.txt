@@ -3,5 +3,4 @@ openpyxl
 Pillow
 PyPDF2
 fpdf
-pdf2docx
 docx2pdf
