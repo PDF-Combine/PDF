@@ -3,4 +3,4 @@ openpyxl
 Pillow
 PyPDF2
 fpdf
-docx_converter
+streamlit-docx-converter
