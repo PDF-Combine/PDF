@@ -28,8 +28,9 @@ def convert_doc_to_pdf_native(doc_file: Path, output_dir: Path = Path("."), time
     """Converts a doc file to pdf using LibreOffice."""
     exception = None
     output = None
+    soffice_path = '/usr/bin/soffice'  # Update this path to where soffice is located on your system
     try:
-        process = run(['soffice', '--headless', '--convert-to',
+        process = run([soffice_path, '--headless', '--convert-to',
                         'pdf:writer_pdf_Export', '--outdir', output_dir.resolve(), doc_file.resolve()],
                        stdout=PIPE, stderr=PIPE,
                        timeout=timeout, check=True)
