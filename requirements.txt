@@ -3,5 +3,5 @@ openpyxl
 Pillow
 PyPDF2
 fpdf
-docx2pdf
-pypandoc
+tempfile
+docx_converter
