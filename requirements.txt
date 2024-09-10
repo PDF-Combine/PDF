@@ -1,4 +1,3 @@
-python-docx
 openpyxl
 Pillow
 PyPDF2
