@@ -8,6 +8,12 @@ import os
 import tempfile
 import pypandoc
 
+# Attempt to download Pandoc if not found
+try:
+    pypandoc.download_pandoc()
+except Exception as e:
+    st.error(f"⚠️ An error occurred while downloading Pandoc: {str(e)}")
+
 # Helper functions
 def convert_docx_to_pdf(docx_file):
     try:
