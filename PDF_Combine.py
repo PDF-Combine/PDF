@@ -5,6 +5,7 @@ from fpdf import FPDF
 from PIL import Image, ImageDraw, ImageFont
 import io
 import tempfile
+from datetime import datetime
 
 # Page configuration - should be at the top
 st.set_page_config(
@@ -84,32 +85,6 @@ def convert_image_to_pdf(image_file):
     pdf_output.seek(0)
     return pdf_output if pdf_output.getbuffer().nbytes > 0 else None
 
-def add_page_numbers(input_pdf):
-    from PyPDF2 import PdfReader, PdfWriter
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.pagesizes import letter
-    from io import BytesIO
-
-    output_pdf = BytesIO()
-    pdf_writer = PdfWriter()
-    pdf_reader = PdfReader(input_pdf)
-    
-    for page_num, page in enumerate(pdf_reader.pages):
-        packet = BytesIO()
-        can = canvas.Canvas(packet, pagesize=letter)
-        can.drawString(10, 10, str(page_num + 1))
-        can.save()
-
-        packet.seek(0)
-        new_pdf = PdfReader(packet)
-        page.merge_page(new_pdf.pages[0])
-        
-        pdf_writer.add_page(page)
-
-    pdf_writer.write(output_pdf)
-    output_pdf.seek(0)
-    return output_pdf
-
 # Instructions
 st.write("""
 **Upload up to 15 Images or PDF documents below.**
@@ -159,13 +134,14 @@ elif uploaded_files:
         merged_pdf.seek(0)
         merger.close()
 
-        # Add page numbers
-        numbered_pdf = add_page_numbers(merged_pdf)
+        # Generate timestamp for file name
+        timestamp = datetime.now().strftime("%Y%m%d%H%M")
+        file_name = f"merged_document_{timestamp}.pdf"
 
         st.success("🎉 PDF created successfully! Download your merged PDF below.")
         st.download_button(
             label="📥 Download Merged PDF",
-            data=numbered_pdf,
-            file_name="merged_document.pdf",
+            data=merged_pdf,
+            file_name=file_name,
             mime="application/pdf"
         )
