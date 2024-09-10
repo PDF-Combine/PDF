@@ -14,10 +14,12 @@ def convert_docx_to_pdf(docx_file):
     for para in doc.paragraphs:
         pdf.set_font("Arial", size=12)
         pdf.multi_cell(0, 10, para.text)
-    pdf_output = io.BytesIO()
-    pdf.output(pdf_output)
-    pdf_output.seek(0)
+    
+    pdf_output = io.BytesIO()  # Create a BytesIO stream
+    pdf.output(pdf_output, 'S')  # Pass 'S' to output the PDF as a string, not a file
+    pdf_output.seek(0)  # Move to the start of the BytesIO stream
     return pdf_output
+
 
 def convert_excel_to_pdf(excel_file):
     wb = load_workbook(excel_file)
