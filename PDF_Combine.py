@@ -6,12 +6,11 @@ from PIL import Image
 import io
 import os
 import tempfile
+import pypandoc
 
 # Helper functions
 def convert_docx_to_pdf(docx_file):
     try:
-        from docx2pdf import convert as docx2pdf_convert
-
         # Create a temporary directory to save the docx and pdf files
         with tempfile.TemporaryDirectory() as tmpdirname:
             temp_docx_path = os.path.join(tmpdirname, docx_file.name)
@@ -20,9 +19,11 @@ def convert_docx_to_pdf(docx_file):
             with open(temp_docx_path, "wb") as f:
                 f.write(docx_file.getbuffer())
             
-            # Convert DOCX to PDF using docx2pdf
+            # Define output PDF path
             temp_pdf_path = os.path.join(tmpdirname, "output.pdf")
-            docx2pdf_convert(temp_docx_path, temp_pdf_path)
+            
+            # Convert DOCX to PDF using pypandoc
+            pypandoc.convert_file(temp_docx_path, 'pdf', outputfile=temp_pdf_path)
             
             # Read the PDF file back into a BytesIO stream
             with open(temp_pdf_path, "rb") as pdf_file:
@@ -31,8 +32,8 @@ def convert_docx_to_pdf(docx_file):
             pdf_output.seek(0)
             return pdf_output
 
-    except NotImplementedError:
-        st.error("⚠️ DOCX to PDF conversion is not available on this system. Please upload the document as a PDF or try again on a Windows machine.")
+    except Exception as e:
+        st.error(f"⚠️ An error occurred while converting DOCX to PDF: {str(e)}")
         return None
 
 def convert_excel_to_pdf(excel_file):
@@ -59,18 +60,15 @@ def convert_image_to_pdf(image_file):
 
 # Page configuration
 st.set_page_config(
-    page_title="The Ultimate PDF Mixer",
+    page_title="Nicola's PDF Puzzle",
     page_icon="📄",
     layout="centered",
     initial_sidebar_state="auto"
 )
 
 # Main title and subheader
-st.title("📄 The Ultimate PDF Mixer")
-st.subheader("Nicola's PDF Party: Merge Your Files with Flair!")
-
-# Catchy phrase
-st.write("Where files come together in perfect harmony! 🎶")
+st.title("📄 Nicola's PDF Puzzle")
+st.subheader("From chaos to order—one PDF at a time! 🚀")
 
 # Instructions
 st.write("""
