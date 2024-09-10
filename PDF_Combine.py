@@ -125,10 +125,15 @@ if uploaded_files and len(uploaded_files) > 15:
 elif uploaded_files:
     st.write("All files uploaded successfully! Press the **Create PDF** button below to merge them.")
     
+    # Display files with numbering
+    st.write("### Files Uploaded:")
+    for idx, file in enumerate(uploaded_files, start=1):
+        st.write(f"**Attachment {idx}:** {file.name}")
+
     # Button to start the merging process
     if st.button("🎉 Create PDF!"):
         merger = PdfMerger()
-        for idx, file in enumerate(uploaded_files):
+        for file in uploaded_files:
             file_type = file.name.split('.')[-1].lower()
             pdf_file = None
             
