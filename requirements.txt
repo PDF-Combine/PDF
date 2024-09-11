@@ -1,5 +1,6 @@
 openpyxl
 Pillow
+pdf2docx
 PyPDF2
 fpdf
 pdfkit
