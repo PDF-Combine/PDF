@@ -5,6 +5,8 @@ from fpdf import FPDF
 from PIL import Image
 from io import BytesIO
 from docx import Document
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 import io
 from datetime import datetime
 
@@ -28,19 +30,26 @@ def convert_word_to_pdf(docx_file):
             # Read the file content as bytes and create a document object
             doc = Document(docx_file)
 
+            # Check if the document is empty
+            if not doc.paragraphs:
+                raise ValueError("The DOCX file is empty.")
+
             # Create a PDF in memory
             pdf_output = BytesIO()
-            pdf = FPDF()
-            pdf.set_auto_page_break(auto=True, margin=15)
-            pdf.add_page()
-            pdf.set_font("Arial", size=12)
+            c = canvas.Canvas(pdf_output, pagesize=letter)
+            width, height = letter
 
             # Write each paragraph of the DOCX file to the PDF
-            for para in doc.paragraphs:
-                pdf.multi_cell(0, 10, para.text)
+            text = c.beginText(40, height - 40)
+            text.setFont("Helvetica", 12)
 
-            # Output the PDF to the BytesIO object
-            pdf.output(pdf_output)
+            for para in doc.paragraphs:
+                text.textLine(para.text)
+
+            c.drawText(text)
+            c.showPage()
+            c.save()
+
             pdf_output.seek(0)
             return pdf_output
 
@@ -51,26 +60,34 @@ def convert_word_to_pdf(docx_file):
         return None
 
 def convert_excel_to_pdf(excel_file):
-    wb = load_workbook(excel_file)
-    sheet = wb.active
-    pdf = FPDF()
-    pdf.add_page()
-    for row in sheet.iter_rows(values_only=True):
-        row_text = ' '.join([str(cell) for cell in row if cell is not None])
-        pdf.set_font("Arial", size=12)
-        pdf.multi_cell(0, 10, row_text)
-    
-    pdf_output = io.BytesIO()
-    pdf.output(pdf_output, 'S')
-    pdf_output.seek(0)
-    return pdf_output if pdf_output.getbuffer().nbytes > 0 else None
+    try:
+        wb = load_workbook(excel_file)
+        sheet = wb.active
+        pdf = FPDF()
+        pdf.add_page()
+        for row in sheet.iter_rows(values_only=True):
+            row_text = ' '.join([str(cell) for cell in row if cell is not None])
+            pdf.set_font("Arial", size=12)
+            pdf.multi_cell(0, 10, row_text)
+        
+        pdf_output = io.BytesIO()
+        pdf.output(pdf_output, 'S')
+        pdf_output.seek(0)
+        return pdf_output if pdf_output.getbuffer().nbytes > 0 else None
+    except Exception as e:
+        st.error(f"⚠️ An error occurred while converting Excel to PDF: {str(e)}")
+        return None
 
 def convert_image_to_pdf(image_file):
-    img = Image.open(image_file)
-    pdf_output = io.BytesIO()
-    img.convert('RGB').save(pdf_output, format='PDF')
-    pdf_output.seek(0)
-    return pdf_output if pdf_output.getbuffer().nbytes > 0 else None
+    try:
+        img = Image.open(image_file)
+        pdf_output = io.BytesIO()
+        img.convert('RGB').save(pdf_output, format='PDF')
+        pdf_output.seek(0)
+        return pdf_output if pdf_output.getbuffer().nbytes > 0 else None
+    except Exception as e:
+        st.error(f"⚠️ An error occurred while converting image to PDF: {str(e)}")
+        return None
 
 # Instructions
 st.write("""
@@ -127,6 +144,8 @@ if uploaded_files:
                         merger.append(pdf_file)
                     except Exception as e:
                         st.error(f"Error merging {file.name}: {str(e)}")
+                else:
+                    st.error(f"Conversion failed for {file.name}. Skipping this file.")
 
             merged_pdf = io.BytesIO()
             merger.write(merged_pdf)
