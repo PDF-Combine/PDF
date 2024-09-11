@@ -3,7 +3,6 @@ from PyPDF2 import PdfMerger
 from openpyxl import load_workbook
 from fpdf import FPDF
 from PIL import Image, ImageDraw, ImageFont
-from pdf2docx import Converter
 from io import BytesIO
 from docx import Document
 import io
@@ -23,13 +22,15 @@ st.subheader("From chaos to order—one PDF at a time! 🚀")
 
 # Helper functions
 def convert_word_to_pdf(docx_file):
-    # Convert DOCX to a series of images and then PDF
     try:
-        document = Document(docx_file)
+        # Load the DOCX file from the uploaded file buffer
+        doc = Document(docx_file)
+
         images = []
         width, height = 800, 1000  # Adjust dimensions as needed
         
-        for para in document.paragraphs:
+        # Iterate through paragraphs to generate images
+        for para in doc.paragraphs:
             image = Image.new('RGB', (width, height), 'white')
             draw = ImageDraw.Draw(image)
             font = ImageFont.load_default()
@@ -42,7 +43,7 @@ def convert_word_to_pdf(docx_file):
             img_io.seek(0)
             images.append(img_io)
         
-        # Convert images to PDF
+        # Convert the images to a PDF
         pdf_output = io.BytesIO()
         images[0].save(pdf_output, save_all=True, append_images=[Image.open(img) for img in images[1:]], format='PDF')
         pdf_output.seek(0)
