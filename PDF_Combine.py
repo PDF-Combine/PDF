@@ -23,29 +23,22 @@ st.subheader("From chaos to order—one PDF at a time! 🚀")
 # Helper functions
 def convert_word_to_pdf(docx_file):
     try:
-        # Load the DOCX file from the uploaded file buffer
+        # Load the DOCX file
         doc = Document(docx_file)
 
-        images = []
-        width, height = 800, 1000  # Adjust dimensions as needed
-        
-        # Iterate through paragraphs to generate images
+        # Create a PDF file in memory
+        pdf_output = BytesIO()
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+
+        # Loop through the paragraphs in the DOCX file and write them to the PDF
         for para in doc.paragraphs:
-            image = Image.new('RGB', (width, height), 'white')
-            draw = ImageDraw.Draw(image)
-            font = ImageFont.load_default()
-            y = 10
-            draw.text((10, y), para.text, font=font, fill='black')
-            y += 20
-            
-            img_io = io.BytesIO()
-            image.save(img_io, format='JPEG')
-            img_io.seek(0)
-            images.append(img_io)
-        
-        # Convert the images to a PDF
-        pdf_output = io.BytesIO()
-        images[0].save(pdf_output, save_all=True, append_images=[Image.open(img) for img in images[1:]], format='PDF')
+            pdf.multi_cell(0, 10, para.text)
+
+        # Output the PDF to the BytesIO object
+        pdf.output(pdf_output)
         pdf_output.seek(0)
         return pdf_output
 
