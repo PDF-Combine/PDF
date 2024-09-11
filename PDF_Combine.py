@@ -2,7 +2,7 @@ import streamlit as st
 from PyPDF2 import PdfMerger
 from openpyxl import load_workbook
 from fpdf import FPDF
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 from io import BytesIO
 from docx import Document
 import io
@@ -23,25 +23,29 @@ st.subheader("From chaos to order—one PDF at a time! 🚀")
 # Helper functions
 def convert_word_to_pdf(docx_file):
     try:
-        # Load the DOCX file
-        doc = Document(docx_file)
+        # Handle if the input file is BytesIO
+        if isinstance(docx_file, BytesIO):
+            # Read the file content as bytes and create a document object
+            doc = Document(docx_file)
 
-        # Create a PDF file in memory
-        pdf_output = BytesIO()
-        pdf = FPDF()
-        pdf.set_auto_page_break(auto=True, margin=15)
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
+            # Create a PDF in memory
+            pdf_output = BytesIO()
+            pdf = FPDF()
+            pdf.set_auto_page_break(auto=True, margin=15)
+            pdf.add_page()
+            pdf.set_font("Arial", size=12)
 
-        # Loop through the paragraphs in the DOCX file and write them to the PDF
-        for para in doc.paragraphs:
-            pdf.multi_cell(0, 10, para.text)
+            # Write each paragraph of the DOCX file to the PDF
+            for para in doc.paragraphs:
+                pdf.multi_cell(0, 10, para.text)
 
-        # Output the PDF to the BytesIO object
-        pdf.output(pdf_output)
-        pdf_output.seek(0)
-        return pdf_output
+            # Output the PDF to the BytesIO object
+            pdf.output(pdf_output)
+            pdf_output.seek(0)
+            return pdf_output
 
+        else:
+            raise ValueError("The input file is not a valid DOCX file.")
     except Exception as e:
         st.error(f"⚠️ An error occurred while converting DOCX to PDF: {str(e)}")
         return None
