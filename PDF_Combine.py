@@ -3,6 +3,7 @@ from PyPDF2 import PdfMerger
 from openpyxl import load_workbook
 from fpdf import FPDF
 from PIL import Image, ImageDraw, ImageFont
+from pdf2docx import Converter
 import io
 from datetime import datetime
 
@@ -84,14 +85,25 @@ def convert_image_to_pdf(image_file):
     pdf_output.seek(0)
     return pdf_output if pdf_output.getbuffer().nbytes > 0 else None
 
+def convert_pdf_to_docx(pdf_file):
+    try:
+        output = io.BytesIO()
+        cv = Converter(pdf_file)
+        cv.convert(output, start=0, end=None)
+        cv.close()
+        return output
+    except Exception as e:
+        st.error(f"⚠️ An error occurred while converting PDF to DOCX: {str(e)}")
+        return None
+
 # Instructions
 st.write("""
-**Upload up to 15 Images or PDF documents below.**
+**Upload up to 15 Images, PDFs, DOCX or Excel files below.**
 We'll help you combine them into one single, neat PDF file that you can download.
 """)
 
 # File upload
-uploaded_files = st.file_uploader("Choose files", type=["pdf", "png", "jpg", "jpeg"], accept_multiple_files=True)
+uploaded_files = st.file_uploader("Choose files", type=["pdf", "png", "jpg", "jpeg", "docx", "xlsx"], accept_multiple_files=True)
 
 if uploaded_files:
     # Display a limit on the number of files
@@ -128,6 +140,7 @@ if uploaded_files:
                 if file_type == 'pdf':
                     pdf_file = file
                 elif file_type == 'docx':
+                    # Convert DOCX to images, then to PDF
                     images = convert_docx_to_image(file)
                     if images:
                         pdf_file = convert_images_to_pdf(images)
@@ -135,7 +148,7 @@ if uploaded_files:
                     pdf_file = convert_excel_to_pdf(file)
                 elif file_type in ['png', 'jpg', 'jpeg']:
                     pdf_file = convert_image_to_pdf(file)
-                
+
                 if pdf_file:
                     try:
                         merger.append(pdf_file)
@@ -158,3 +171,17 @@ if uploaded_files:
                 file_name=file_name,
                 mime="application/pdf"
             )
+
+        # Option to convert merged PDF to DOCX
+        if st.button("Convert Merged PDF to DOCX"):
+            if merged_pdf:
+                with st.spinner("Converting PDF to DOCX..."):
+                    docx_output = convert_pdf_to_docx(merged_pdf)
+                    if docx_output:
+                        st.success("🎉 Conversion to DOCX completed!")
+                        st.download_button(
+                            label="📥 Download DOCX",
+                            data=docx_output.getvalue(),
+                            file_name="converted_document.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        )
