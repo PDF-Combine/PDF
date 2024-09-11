@@ -9,6 +9,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import io
 from datetime import datetime
+import tempfile
 
 # Page configuration - should be at the top
 st.set_page_config(
@@ -27,8 +28,13 @@ def convert_word_to_pdf(docx_file):
     try:
         # Handle if the input file is BytesIO
         if isinstance(docx_file, BytesIO):
-            # Read the file content as bytes and create a document object
-            doc = Document(docx_file)
+            # Save the BytesIO content to a temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as temp_docx:
+                temp_docx.write(docx_file.getbuffer())
+                temp_docx_path = temp_docx.name
+
+            # Read the temporary DOCX file
+            doc = Document(temp_docx_path)
 
             # Check if the document is empty
             if not doc.paragraphs:
