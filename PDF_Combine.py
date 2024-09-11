@@ -61,19 +61,34 @@ def convert_word_to_pdf(docx_file):
 
 def convert_excel_to_pdf(excel_file):
     try:
-        wb = load_workbook(excel_file)
-        sheet = wb.active
-        pdf = FPDF()
-        pdf.add_page()
-        for row in sheet.iter_rows(values_only=True):
-            row_text = ' '.join([str(cell) for cell in row if cell is not None])
-            pdf.set_font("Arial", size=12)
-            pdf.multi_cell(0, 10, row_text)
-        
-        pdf_output = io.BytesIO()
-        pdf.output(pdf_output, 'S')
-        pdf_output.seek(0)
-        return pdf_output if pdf_output.getbuffer().nbytes > 0 else None
+        # Handle if the input file is BytesIO
+        if isinstance(excel_file, BytesIO):
+            # Load the workbook from the BytesIO object
+            wb = load_workbook(excel_file)
+            sheet = wb.active
+
+            # Create a PDF in memory
+            pdf_output = BytesIO()
+            c = canvas.Canvas(pdf_output, pagesize=letter)
+            width, height = letter
+
+            # Write each row of the Excel file to the PDF
+            text = c.beginText(40, height - 40)
+            text.setFont("Helvetica", 12)
+
+            for row in sheet.iter_rows(values_only=True):
+                row_text = ' '.join([str(cell) for cell in row if cell is not None])
+                text.textLine(row_text)
+
+            c.drawText(text)
+            c.showPage()
+            c.save()
+
+            pdf_output.seek(0)
+            return pdf_output
+
+        else:
+            raise ValueError("The input file is not a valid Excel file.")
     except Exception as e:
         st.error(f"⚠️ An error occurred while converting Excel to PDF: {str(e)}")
         return None
