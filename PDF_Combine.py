@@ -4,6 +4,8 @@ from openpyxl import load_workbook
 from fpdf import FPDF
 from PIL import Image, ImageDraw, ImageFont
 from pdf2docx import Converter
+from io import BytesIO
+from docx import Document
 import io
 from datetime import datetime
 
@@ -20,11 +22,10 @@ st.title("📄 Nicola's PDF Puzzle")
 st.subheader("From chaos to order—one PDF at a time! 🚀")
 
 # Helper functions
-def convert_docx_to_image(docx_file):
+def convert_word_to_pdf(docx_file):
+    # Convert DOCX to a series of images and then PDF
     try:
-        from docx import Document
         document = Document(docx_file)
-
         images = []
         width, height = 800, 1000  # Adjust dimensions as needed
         
@@ -32,35 +33,23 @@ def convert_docx_to_image(docx_file):
             image = Image.new('RGB', (width, height), 'white')
             draw = ImageDraw.Draw(image)
             font = ImageFont.load_default()
-            
             y = 10
             draw.text((10, y), para.text, font=font, fill='black')
             y += 20
             
-            # Save image to a BytesIO object
             img_io = io.BytesIO()
             image.save(img_io, format='JPEG')
             img_io.seek(0)
             images.append(img_io)
         
-        return images
-    
-    except Exception as e:
-        st.error(f"⚠️ An error occurred while converting DOCX to image: {str(e)}")
-        return None
-
-def convert_images_to_pdf(image_list):
-    try:
+        # Convert images to PDF
         pdf_output = io.BytesIO()
-        images = [Image.open(img) for img in image_list]
-        
-        # Save the first image and append the rest
-        images[0].save(pdf_output, save_all=True, append_images=images[1:], resolution=100.0, quality=95, optimize=True)
+        images[0].save(pdf_output, save_all=True, append_images=[Image.open(img) for img in images[1:]], format='PDF')
         pdf_output.seek(0)
         return pdf_output
-    
+
     except Exception as e:
-        st.error(f"⚠️ An error occurred while converting images to PDF: {str(e)}")
+        st.error(f"⚠️ An error occurred while converting DOCX to PDF: {str(e)}")
         return None
 
 def convert_excel_to_pdf(excel_file):
@@ -85,20 +74,9 @@ def convert_image_to_pdf(image_file):
     pdf_output.seek(0)
     return pdf_output if pdf_output.getbuffer().nbytes > 0 else None
 
-def convert_pdf_to_docx(pdf_file):
-    try:
-        output = io.BytesIO()
-        cv = Converter(pdf_file)
-        cv.convert(output, start=0, end=None)
-        cv.close()
-        return output
-    except Exception as e:
-        st.error(f"⚠️ An error occurred while converting PDF to DOCX: {str(e)}")
-        return None
-
 # Instructions
 st.write("""
-**Upload up to 15 Images, PDFs, DOCX or Excel files below.**
+**Upload up to 15 Images, Word, Excel, or PDF documents below.**
 We'll help you combine them into one single, neat PDF file that you can download.
 """)
 
@@ -140,15 +118,12 @@ if uploaded_files:
                 if file_type == 'pdf':
                     pdf_file = file
                 elif file_type == 'docx':
-                    # Convert DOCX to images, then to PDF
-                    images = convert_docx_to_image(file)
-                    if images:
-                        pdf_file = convert_images_to_pdf(images)
+                    pdf_file = convert_word_to_pdf(file)
                 elif file_type == 'xlsx':
                     pdf_file = convert_excel_to_pdf(file)
                 elif file_type in ['png', 'jpg', 'jpeg']:
                     pdf_file = convert_image_to_pdf(file)
-
+                
                 if pdf_file:
                     try:
                         merger.append(pdf_file)
@@ -171,17 +146,3 @@ if uploaded_files:
                 file_name=file_name,
                 mime="application/pdf"
             )
-
-        # Option to convert merged PDF to DOCX
-        if st.button("Convert Merged PDF to DOCX"):
-            if merged_pdf:
-                with st.spinner("Converting PDF to DOCX..."):
-                    docx_output = convert_pdf_to_docx(merged_pdf)
-                    if docx_output:
-                        st.success("🎉 Conversion to DOCX completed!")
-                        st.download_button(
-                            label="📥 Download DOCX",
-                            data=docx_output.getvalue(),
-                            file_name="converted_document.docx",
-                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        )
