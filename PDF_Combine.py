@@ -198,8 +198,7 @@ from reportlab.pdfgen import canvas
 import io
 from datetime import datetime
 import tempfile
-import pypandoc
-from pdf2docx import Converter
+import pypandoc  # Use pypandoc for PDF to DOCX conversion
 
 # Page configuration
 st.set_page_config(
@@ -290,18 +289,15 @@ def convert_image_to_pdf(image_file):
         st.error(f"⚠️ Error converting image to PDF: {str(e)}")
         return None
 
-# Convert PDF to DOCX using pdf2docx
+# Convert PDF to DOCX using pypandoc
 def convert_pdf_to_docx(pdf_data):
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
             temp_pdf.write(pdf_data)
             temp_pdf_path = temp_pdf.name
 
-        docx_output = io.BytesIO()
-        converter = Converter(temp_pdf_path)
-        converter.convert(docx_output)  # Save output to BytesIO
-        converter.close()
-        docx_output.seek(0)
+        # Convert PDF to DOCX using pypandoc
+        docx_output = pypandoc.convert_file(temp_pdf_path, 'docx', outputfile=None)
         return docx_output
     except Exception as e:
         st.error(f"⚠️ Error converting PDF to DOCX: {str(e)}")
@@ -414,4 +410,3 @@ if uploaded_files:
                 file_name=f"merged_document_{timestamp}.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
-r
