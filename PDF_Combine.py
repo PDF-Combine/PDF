@@ -199,7 +199,7 @@ import io
 from datetime import datetime
 import tempfile
 import pytesseract
-from pdf2image import convert_from_path
+from pdf2image import convert_from_bytes
 
 # Page configuration - should be at the top
 st.set_page_config(
@@ -291,13 +291,8 @@ def convert_image_to_pdf(image_file):
 
 def add_ocr_to_pdf(pdf_file):
     try:
-        # Save the BytesIO object to a temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
-            temp_pdf.write(pdf_file.getbuffer())
-            temp_pdf_path = temp_pdf.name
-
         # Convert PDF to images
-        images = convert_from_path(temp_pdf_path)
+        images = convert_from_bytes(pdf_file.getvalue())
         pdf_output = BytesIO()
         c = canvas.Canvas(pdf_output, pagesize=letter)
         width, height = letter
@@ -388,4 +383,3 @@ if uploaded_files:
                     file_name=file_name,
                     mime="application/pdf"
                 )
-
