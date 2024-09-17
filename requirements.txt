@@ -9,6 +9,6 @@ pypandoc
 docx2pdf
 reportlab
 fitz
-pytesseract
+pdfminer==20191125
 pdf2image
-pdfplumber
+pytesseract
