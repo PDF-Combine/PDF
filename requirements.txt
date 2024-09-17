@@ -9,3 +9,5 @@ pypandoc
 docx2pdf
 reportlab
 fitz
+pytesseract
+pdf2image
