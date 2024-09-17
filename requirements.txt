@@ -11,4 +11,4 @@ reportlab
 fitz
 pytesseract
 pdf2image
-poppler-utils
+pdfplumber
