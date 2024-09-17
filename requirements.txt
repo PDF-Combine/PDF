@@ -9,6 +9,6 @@ pypandoc
 docx2pdf
 reportlab
 fitz
-tesseract-ocr
+pytesseract
 pdf2image
 pdfplumber
