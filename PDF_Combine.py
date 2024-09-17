@@ -291,7 +291,13 @@ def convert_image_to_pdf(image_file):
 
 def add_ocr_to_pdf(pdf_file):
     try:
-        images = convert_from_path(pdf_file)
+        # Save the BytesIO object to a temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
+            temp_pdf.write(pdf_file.getbuffer())
+            temp_pdf_path = temp_pdf.name
+
+        # Convert PDF to images
+        images = convert_from_path(temp_pdf_path)
         pdf_output = BytesIO()
         c = canvas.Canvas(pdf_output, pagesize=letter)
         width, height = letter
