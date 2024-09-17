@@ -200,7 +200,6 @@ from datetime import datetime
 import tempfile
 import pytesseract
 from pdf2image import convert_from_bytes
-import pdfplumber
 
 # Page configuration - should be at the top
 st.set_page_config(
@@ -292,17 +291,17 @@ def convert_image_to_pdf(image_file):
 
 def add_ocr_to_pdf(pdf_file):
     try:
+        # Convert PDF to images
+        images = convert_from_bytes(pdf_file.getvalue())
         pdf_output = BytesIO()
         c = canvas.Canvas(pdf_output, pagesize=letter)
         width, height = letter
 
-        with pdfplumber.open(pdf_file) as pdf:
-            for page in pdf.pages:
-                image = page.to_image()
-                text = pytesseract.image_to_string(image.original)
-                c.drawImage(image.original, 0, 0, width, height)
-                c.drawString(40, height - 40, text)
-                c.showPage()
+        for image in images:
+            text = pytesseract.image_to_string(image)
+            c.drawImage(image, 0, 0, width, height)
+            c.drawString(40, height - 40, text)
+            c.showPage()
 
         c.save()
         pdf_output.seek(0)
@@ -384,3 +383,4 @@ if uploaded_files:
                     file_name=file_name,
                     mime="application/pdf"
                 )
+
