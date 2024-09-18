@@ -185,6 +185,7 @@
 #                 mime="application/pdf"
 #             )
 
+import io
 import streamlit as st
 from zipfile import ZipFile
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
