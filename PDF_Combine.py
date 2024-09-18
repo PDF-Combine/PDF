@@ -185,7 +185,7 @@
 #                 mime="application/pdf"
 #             )
 
-import io  # Ensure this import is present
+import io
 import streamlit as st
 from zipfile import ZipFile
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
@@ -410,13 +410,16 @@ if uploaded_files:
             # Add OCR to the merged PDF
             ocr_texts, num_pages = images_to_txt(merged_pdf.getvalue(), 'eng')
             if ocr_texts:
-                timestamp = datetime.now().strftime("%Y%m%d%H%M")
-                file_name = f"merged_document_{timestamp}.pdf"
-                st.success("🎉 PDF created successfully with OCR! Download your merged PDF below.")
-                st.download_button(
-                    label="📥 Download Merged PDF with OCR",
-                    data=merged_pdf,
-                    file_name=file_name,
-                    mime="application/pdf"
-                )
+                # Create a new PDF with OCR text overlay
+                final_pdf = io.BytesIO()
+                c = canvas.Canvas(final_pdf, pagesize=letter)
+                width, height = letter
+                for i, text in enumerate(ocr_texts):
+                    c.drawString(40, height - 40 - (i * 20), text)
+                c.save()
+                final_pdf.seek(0)
 
+                # Merge the OCR text PDF with the original PDF
+                final_merged_pdf = PdfMerger()
+                final_merged_pdf.append(merged_pdf)
+                final_merged_pdf.append
