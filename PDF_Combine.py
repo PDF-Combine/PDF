@@ -348,10 +348,6 @@ def save_pages(pages):
     zipObj.close()
     return zipPath
 
-def displayPDF(file):
-    base64_pdf = base64.b64encode(file).decode('utf-8')
-    pdf_display = F'<iframe src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf"></iframe>'
-    st.markdown(pdf_display, unsafe_allow_html=True)
 
 def create_word_doc(ocr_texts):
     doc = Document()
@@ -413,4 +409,4 @@ if uploaded_files:
             merged_pdf = BytesIO()
             merger.write(merged_pdf)
             merged_pdf.seek(0)
-            displayPDF(merged_pdf.getvalue())
+           
