@@ -301,6 +301,7 @@ def add_ocr_text_to_pdf(pdf_bytes, ocr_texts):
         packet = BytesIO()
         can = canvas.Canvas(packet, pagesize=letter)
         can.setFont("Helvetica", 12)
+        can.setFillAlpha(0.0)  # Set transparency to make text invisible
         text = can.beginText(40, 750)
         text.setTextOrigin(40, 750)
         text.setFont("Helvetica", 12)
