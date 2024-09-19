@@ -198,7 +198,7 @@ import base64
 import pdf2image
 import pytesseract
 from pytesseract import Output, TesseractError
-from PyPDF2 import PdfMerger
+from PyPDF2 import PdfMerger, PdfWriter, PdfReader
 from openpyxl import load_workbook
 from fpdf import FPDF
 from PIL import Image
@@ -227,28 +227,21 @@ def convert_word_to_pdf(docx_file):
             with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as temp_docx:
                 temp_docx.write(docx_file.getbuffer())
                 temp_docx_path = temp_docx.name
-
             doc = Document(temp_docx_path)
             if not doc.paragraphs:
                 raise ValueError("The DOCX file is empty.")
-
             pdf_output = BytesIO()
             c = canvas.Canvas(pdf_output, pagesize=letter)
             width, height = letter
-
             text = c.beginText(40, height - 40)
             text.setFont("Helvetica", 12)
-
             for para in doc.paragraphs:
                 text.textLine(para.text)
-
             c.drawText(text)
             c.showPage()
             c.save()
-
             pdf_output.seek(0)
             return pdf_output
-
         else:
             raise ValueError("The input file is not a valid DOCX file.")
     except Exception as e:
@@ -260,25 +253,19 @@ def convert_excel_to_pdf(excel_file):
         if isinstance(excel_file, BytesIO):
             wb = load_workbook(excel_file)
             sheet = wb.active
-
             pdf_output = BytesIO()
             c = canvas.Canvas(pdf_output, pagesize=letter)
             width, height = letter
-
             text = c.beginText(40, height - 40)
             text.setFont("Helvetica", 12)
-
             for row in sheet.iter_rows(values_only=True):
                 row_text = ' '.join([str(cell) for cell in row if cell is not None])
                 text.textLine(row_text)
-
             c.drawText(text)
             c.showPage()
             c.save()
-
             pdf_output.seek(0)
             return pdf_output
-
         else:
             raise ValueError("The input file is not a valid Excel file.")
     except Exception as e:
@@ -288,7 +275,7 @@ def convert_excel_to_pdf(excel_file):
 def convert_image_to_pdf(image_file):
     try:
         img = Image.open(image_file)
-        pdf_output = io.BytesIO()
+        pdf_output = BytesIO()
         img.convert('RGB').save(pdf_output, format='PDF')
         pdf_output.seek(0)
         return pdf_output if pdf_output.getbuffer().nbytes > 0 else None
@@ -306,67 +293,31 @@ def images_to_txt(path, language):
         all_text.append(text)
     return all_text, len(all_text)
 
-@st.cache_data
-def convert_pdf_to_txt_pages(path):
-    texts = []
-    rsrcmgr = PDFResourceManager()
-    retstr = StringIO()
-    laparams = LAParams()
-    device = TextConverter(rsrcmgr, retstr, laparams=laparams)
-    interpreter = PDFPageInterpreter(rsrcmgr, device)
-    size = 0
-    c = 0
-    file_pages = PDFPage.get_pages(path)
-    nbPages = len(list(file_pages))
-    for page in PDFPage.get_pages(path):
-        interpreter.process_page(page)
-        t = retstr.getvalue()
-        if c == 0:
-            texts.append(t)
-        else:
-            texts.append(t[size:])
-        c = c + 1
-        size = len(t)
-    device.close()
-    retstr.close()
-    return texts, nbPages
+def add_ocr_text_to_pdf(pdf_bytes, ocr_texts):
+    pdf_reader = PdfReader(BytesIO(pdf_bytes))
+    pdf_writer = PdfWriter()
 
-@st.cache_data
-def convert_pdf_to_txt_file(path):
-    texts = []
-    rsrcmgr = PDFResourceManager()
-    retstr = StringIO()
-    laparams = LAParams()
-    device = TextConverter(rsrcmgr, retstr, laparams=laparams)
-    interpreter = PDFPageInterpreter(rsrcmgr, device)
-    file_pages = PDFPage.get_pages(path)
-    nbPages = len(list(file_pages))
-    for page in PDFPage.get_pages(path):
-        interpreter.process_page(page)
-        t = retstr.getvalue()
-    device.close()
-    retstr.close()
-    return t, nbPages
+    for page_num, page in enumerate(pdf_reader.pages):
+        packet = BytesIO()
+        can = canvas.Canvas(packet, pagesize=letter)
+        can.setFont("Helvetica", 12)
+        text = can.beginText(40, 750)
+        text.setTextOrigin(40, 750)
+        text.setFont("Helvetica", 12)
+        for line in ocr_texts[page_num].split('\n'):
+            text.textLine(line)
+        can.drawText(text)
+        can.save()
 
-@st.cache_data
-def save_pages(pages):
-    files = []
-    for page in range(len(pages)):
-        filename = "page_" + str(page) + ".txt"
-        with open("./file_pages/" + filename, 'w', encoding="utf-8") as file:
-            file.write(pages[page])
-            files.append(file.name)
-    zipPath = './file_pages/pdf_to_txt.zip'
-    zipObj = ZipFile(zipPath, 'w')
-    for f in files:
-        zipObj.write(f)
-    zipObj.close()
-    return zipPath
+        packet.seek(0)
+        overlay_pdf = PdfReader(packet)
+        page.merge_page(overlay_pdf.pages[0])
+        pdf_writer.add_page(page)
 
-def displayPDF(file):
-    base64_pdf = base64.b64encode(file).decode('utf-8')
-    pdf_display = F'<iframe src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf"></iframe>'
-    st.markdown(pdf_display, unsafe_allow_html=True)
+    output_pdf = BytesIO()
+    pdf_writer.write(output_pdf)
+    output_pdf.seek(0)
+    return output_pdf
 
 # Instructions
 st.write("""
@@ -382,10 +333,8 @@ if uploaded_files:
         st.error("🚨 You can upload a maximum of 15 files. Please try again.")
     else:
         st.write("All files uploaded successfully! Press the **Create PDF** button below to merge them.")
-
         file_names = [file.name for file in uploaded_files]
         reordered_files = []
-
         st.write("### Files Uploaded:")
         for idx, file_name in enumerate(file_names):
             selected_position = st.selectbox(
@@ -395,7 +344,6 @@ if uploaded_files:
                 key=f"select_{idx}"
             )
             reordered_files.append((selected_position, uploaded_files[idx]))
-
         reordered_files.sort(key=lambda x: x[0])
         sorted_files = [file[1] for file in reordered_files]
 
@@ -404,7 +352,6 @@ if uploaded_files:
             for file in sorted_files:
                 file_type = file.name.split('.')[-1].lower()
                 pdf_file = None
-                
                 if file_type == 'pdf':
                     pdf_file = file
                 elif file_type == 'docx':
@@ -413,7 +360,6 @@ if uploaded_files:
                     pdf_file = convert_excel_to_pdf(file)
                 elif file_type in ['png', 'jpg', 'jpeg']:
                     pdf_file = convert_image_to_pdf(file)
-                
                 if pdf_file:
                     try:
                         merger.append(pdf_file)
@@ -421,23 +367,21 @@ if uploaded_files:
                         st.error(f"Error merging {file.name}: {str(e)}")
                 else:
                     st.error(f"Conversion failed for {file.name}. Skipping this file.")
-
-            merged_pdf = io.BytesIO()
+            merged_pdf = BytesIO()
             merger.write(merged_pdf)
             merged_pdf.seek(0)
             merger.close()
 
             # Add OCR to the merged PDF
             ocr_texts, num_pages = images_to_txt(merged_pdf.getvalue(), 'eng')
-
             if ocr_texts:
+                merged_pdf_with_ocr = add_ocr_text_to_pdf(merged_pdf.getvalue(), ocr_texts)
                 timestamp = datetime.now().strftime("%Y%m%d%H%M")
                 file_name = f"merged_document_{timestamp}.pdf"
-
                 st.success("🎉 PDF created successfully with OCR! Download your merged PDF below.")
                 st.download_button(
                     label="📥 Download Merged PDF with OCR",
-                    data=merged_pdf,
+                    data=merged_pdf_with_ocr,
                     file_name=file_name,
                     mime="application/pdf"
                 )
