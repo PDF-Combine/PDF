@@ -185,7 +185,6 @@
 #                 mime="application/pdf"
 #             )
 
-import io
 import streamlit as st
 from zipfile import ZipFile
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
@@ -274,7 +273,7 @@ def convert_excel_to_pdf(excel_file):
 def convert_image_to_pdf(image_file):
     try:
         img = Image.open(image_file)
-        pdf_output = io.BytesIO()
+        pdf_output = BytesIO()
         img.convert('RGB').save(pdf_output, format='PDF')
         pdf_output.seek(0)
         return pdf_output if pdf_output.getbuffer().nbytes > 0 else None
@@ -411,18 +410,7 @@ if uploaded_files:
                         st.error(f"Error merging {file.name}: {str(e)}")
                 else:
                     st.error(f"Conversion failed for {file.name}. Skipping this file.")
-            merged_pdf = io.BytesIO()
+            merged_pdf = BytesIO()
             merger.write(merged_pdf)
             merged_pdf.seek(0)
-            merger.close()
-
-            # Add OCR to the merged PDF
-            ocr_texts, num_pages = images_to_txt(merged_pdf.getvalue(), 'eng')
-            if ocr_texts:
-                # Create a new PDF with OCR text overlay
-                final_pdf = io.BytesIO()
-                c = canvas.Canvas(final_pdf, pagesize=letter)
-                width, height = letter
-                for i, text in enumerate(ocr_texts):
-                    c.drawString(40, height - 40 - (i * 20), text)
-                c.save()
+            displayPDF(merged_pdf.getvalue())
