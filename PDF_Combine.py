@@ -293,7 +293,7 @@ def images_to_txt(path, language):
         all_text.append(text)
     return all_text, len(all_text)
 
-def add_ocr_text_to_pdf(pdf_bytes, ocr_texts):
+def add_ocr_text_to_pdf(pdf_bytes, ocr_texts, ocr_boxes):
     pdf_reader = PdfReader(BytesIO(pdf_bytes))
     pdf_writer = PdfWriter()
 
@@ -302,12 +302,9 @@ def add_ocr_text_to_pdf(pdf_bytes, ocr_texts):
         can = canvas.Canvas(packet, pagesize=letter)
         can.setFont("Helvetica", 12)
         can.setFillAlpha(0.0)  # Set transparency to make text invisible
-        text = can.beginText(40, 750)
-        text.setTextOrigin(40, 750)
-        text.setFont("Helvetica", 12)
-        for line in ocr_texts[page_num].split('\n'):
-            text.textLine(line)
-        can.drawText(text)
+        for box in ocr_boxes[page_num]:
+            x, y, w, h, text = box
+            can.drawString(x, y, text)
         can.save()
 
         packet.seek(0)
@@ -319,6 +316,19 @@ def add_ocr_text_to_pdf(pdf_bytes, ocr_texts):
     pdf_writer.write(output_pdf)
     output_pdf.seek(0)
     return output_pdf
+
+def extract_ocr_boxes(images, language):
+    ocr_boxes = []
+    for img in images:
+        data = pytesseract.image_to_data(img, lang=language, output_type=Output.DICT)
+        boxes = []
+        for i in range(len(data['text'])):
+            if int(data['conf'][i]) > 60:  # Confidence threshold
+                (x, y, w, h) = (data['left'][i], data['top'][i], data['width'][i], data['height'][i])
+                text = data['text'][i]
+                boxes.append((x, y, w, h, text))
+        ocr_boxes.append(boxes)
+    return ocr_boxes
 
 # Instructions
 st.write("""
@@ -374,9 +384,11 @@ if uploaded_files:
             merger.close()
 
             # Add OCR to the merged PDF
+            images = pdf2image.convert_from_bytes(merged_pdf.getvalue())
             ocr_texts, num_pages = images_to_txt(merged_pdf.getvalue(), 'eng')
+            ocr_boxes = extract_ocr_boxes(images, 'eng')
             if ocr_texts:
-                merged_pdf_with_ocr = add_ocr_text_to_pdf(merged_pdf.getvalue(), ocr_texts)
+                merged_pdf_with_ocr = add_ocr_text_to_pdf(merged_pdf.getvalue(), ocr_texts, ocr_boxes)
                 timestamp = datetime.now().strftime("%Y%m%d%H%M")
                 file_name = f"merged_document_{timestamp}.pdf"
                 st.success("🎉 PDF created successfully with OCR! Download your merged PDF below.")
