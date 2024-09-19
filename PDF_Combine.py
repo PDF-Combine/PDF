@@ -354,6 +354,15 @@ def displayPDF(file):
     pdf_display = F'<iframe src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf"></iframe>'
     st.markdown(pdf_display, unsafe_allow_html=True)
 
+def create_word_doc(ocr_texts):
+    doc = Document()
+    for text in ocr_texts:
+        doc.add_paragraph(text)
+    word_output = BytesIO()
+    doc.save(word_output)
+    word_output.seek(0)
+    return word_output
+
 # Instructions
 st.write("""
 **Upload up to 15 Images, Word, Excel, or PDF documents below.**
@@ -417,9 +426,3 @@ if uploaded_files:
                 for i, text in enumerate(ocr_texts):
                     c.drawString(40, height - 40 - (i * 20), text)
                 c.save()
-                final_pdf.seek(0)
-
-                # Merge the OCR text PDF with the original PDF
-                final_merged_pdf = PdfMerger()
-                final_merged_pdf.append(merged_pdf)
-                final_merged_pdf.append
