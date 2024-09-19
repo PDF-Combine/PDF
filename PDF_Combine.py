@@ -187,6 +187,7 @@
 
 
 import streamlit as st
+import io
 from zipfile import ZipFile
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter
