@@ -186,6 +186,61 @@
 #             )
 
 
+import streamlit as st
+from zipfile import ZipFile
+from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
+from pdfminer.converter import TextConverter
+from pdfminer.layout import LAParams
+from pdfminer.pdfpage import PDFPage
+from io import StringIO, BytesIO
+import base64
+import pdf2image
+import pytesseract
+from pytesseract import Output, TesseractError
+from PyPDF2 import PdfMerger
+from openpyxl import load_workbook
+from fpdf import FPDF
+from PIL import Image
+from docx import Document
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from datetime import datetime
+import tempfile
+
+# Page configuration - should be at the top
+st.set_page_config(
+    page_title="Nicola's PDF Puzzle",
+    page_icon="📄",
+    layout="centered",
+    initial_sidebar_state="auto"
+)
+
+# Main title and subheader
+st.title("📄 Nicola's PDF Puzzle")
+st.subheader("From chaos to order—one PDF at a time! 🚀")
+
+# Helper functions
+def convert_word_to_pdf(docx_file):
+    try:
+        if isinstance(docx_file, BytesIO):
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as temp_docx:
+                temp_docx.write(docx_file.getbuffer())
+                temp_docx_path = temp_docx.name
+
+            doc = Document(temp_docx_path)
+            if not doc.paragraphs:
+                raise ValueError("The DOCX file is empty.")
+
+            pdf_output = BytesIO()
+            c = canvas.Canvas(pdf_output, pagesize=letter)
+            width, height = letter
+
+            text = c.beginText(40, height - 40)
+            text.setFont("Helvetica", 12)
+
+            for para in doc.paragraphs:
+                text.textLine(para.text)
+
             c.drawText(text)
             c.showPage()
             c.save()
